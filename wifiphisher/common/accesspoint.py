@@ -28,9 +28,21 @@ class AccessPoint(object):
         self.channel = None
         self.essid = None
         self.psk = None
+        self.force_hostapd = False
         # roguehostapd object
         self.hostapd_object = None
         self.deny_mac_addrs = []
+
+    def enable_system_hostapd(self):
+        """
+        Set the interface for the softAP
+        :param self: An AccessPoint object
+        :type self: AccessPoint
+        :return: None
+        :rtype: None
+        ..note: use hostapd on the system instead of using roguehostapd
+        """
+        self.force_hostapd = True
 
     def set_interface(self, interface):
         """
@@ -174,32 +186,32 @@ class AccessPoint(object):
             "ssid": self.essid,
             "interface": self.interface,
             "channel": self.channel,
-            "karma_enable": 1,
             "deny_macs": self.deny_mac_addrs,
-            "wpspbc": True
         }
         if self.psk:
             hostapd_config['wpa2password'] = self.psk
-
-        # create the option dictionary
-        hostapd_options = {
-            'mute': True,
-            "eloop_term_disable": True
-        }
-
-        try:
-            self.hostapd_object = apctrl.Hostapd()
-            self.hostapd_object.start(hostapd_config, hostapd_options)
-        except KeyboardInterrupt:
-            raise Exception
-        # when roguehostapd fail to start rollback to use the hostapd
-        # on the system
-        except BaseException:
-            hostapd_config = {}
-            hostapd_options = {}
+        self.hostapd_object = apctrl.Hostapd()
+        if not self.force_hostapd:
+            try:
+                hostapd_config["karma_enable"] = 1
+                hostapd_config["wpspbc"] = True
+                hostapd_options = {
+                    'mute': True,
+                    "eloop_term_disable": True
+                }
+                self.hostapd_object.start(hostapd_config, hostapd_options)
+            except KeyboardInterrupt:
+                raise Exception
+            except BaseException:
+                print("[" + constants.R + "!" + constants.W + "] " +
+                      "roguehostapd is not installed! You can supply --force-hostapd"
+                      " to use the hostapd installed on the system instead")
+                # just raise exception when hostapd is not installed
+                raise Exception
+        else:
+            # use the hostapd on the users' system
             self.hostapd_object.create_hostapd_conf_file(hostapd_config,
-                                                         hostapd_options)
-            # handle exception if hostapd is not installed in system
+                                                         {})
             try:
                 self.hostapd_object = subprocess.Popen(
                     ['hostapd', hostapdconfig.ROGUEHOSTAPD_RUNTIME_CONFIGPATH],

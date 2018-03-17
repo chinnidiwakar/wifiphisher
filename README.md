@@ -102,6 +102,7 @@ Following are all the options along with their descriptions (also available with
 |-wP|--wps-pbc|Monitor if the button on a WPS-PBC Registrar side is pressed.|
 |-wAI|--wpspbc-assoc-interface|The WLAN interface used for associating to the WPS AccessPoint.|
 |-kb|--known-beacons|Perform the known beacons Wi-Fi automatic association technique.|
+|-fH|--force-hostapd|Lunch the soft AP by the hostapd installed on the system.|
 
 
 ## Screenshots
